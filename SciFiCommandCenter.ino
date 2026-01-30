@@ -243,89 +243,109 @@ function animateValue(id,target,options){
   requestAnimationFrame(step);
 }
 
-function activateFlux(){
+async function sendCommand(endpoint){
+  try{
+    const response=await fetch(endpoint);
+    if(!response.ok){throw new Error(`Request failed: ${response.status}`);}
+    return await response.json();
+  }catch(error){
+    console.warn('Command failed',endpoint,error);
+    return null;
+  }
+}
+
+async function activateFlux(){
+  const data=await sendCommand('/api/flux');
+  if(!data){return;}
   const flux=document.getElementById('flux');
   if(!flux){return;}
-  let states=['STABLE','FLUCTUATING','CRITICAL','HARMONIZED'];
-  flux.textContent=states[rand(0,3)];
-  animateValue('particles',rand(1000,9999),{decimals:0});
-  animateValue('entangle',rand(0,100),{decimals:0,suffix:'%'});
+  flux.textContent=data.fluxState;
+  animateValue('particles',data.particleCount,{decimals:0});
+  animateValue('entangle',data.entangle,{decimals:0,suffix:'%'});
   const gauge=document.getElementById('flux-gauge');
-  if(gauge){gauge.style.width=rand(20,100)+'%';}
+  if(gauge){gauge.style.width=data.gauge+'%';}
 }
 
-function timeTravel(){
+async function timeTravel(){
+  const data=await sendCommand('/api/time');
+  if(!data){return;}
   const era=document.getElementById('era');
   if(!era){return;}
-  let eras=['2025 CE','1885 CE','2155 CE','3024 CE','476 CE','10000 BCE'];
-  era.textContent=eras[rand(0,5)];
-  animateValue('drift',rand(0,5000),{decimals:0,prefix:'±',suffix:' yrs'});
-  animateValue('causality',randFloat(0.5,1.5),{decimals:3});
+  era.textContent=data.era;
+  animateValue('drift',data.drift,{decimals:0,prefix:'±',suffix:' yrs'});
+  animateValue('causality',data.causality,{decimals:3});
 }
 
-function openWormhole(){
+async function openWormhole(){
+  const data=await sendCommand('/api/wormhole');
+  if(!data){return;}
   const destination=document.getElementById('destination');
   if(!destination){return;}
-  let dests=['ALPHA CENTAURI','ANDROMEDA','PARALLEL EARTH','VOID','PROXIMA B'];
-  animateValue('stability',rand(0,100),{decimals:0,suffix:'%'});
-  animateValue('aperture',randFloat(0,100),{decimals:2,suffix:' m'});
-  destination.textContent=dests[rand(0,4)];
+  animateValue('stability',data.stability,{decimals:0,suffix:'%'});
+  animateValue('aperture',data.aperture,{decimals:2,suffix:' m'});
+  destination.textContent=data.destination;
   const gauge=document.getElementById('wormhole-gauge');
-  if(gauge){gauge.style.width=rand(0,100)+'%';}
+  if(gauge){gauge.style.width=data.gauge+'%';}
 }
 
-function scanDarkMatter(){
+async function scanDarkMatter(){
+  const data=await sendCommand('/api/dark-matter');
+  if(!data){return;}
   const fluctuation=document.getElementById('fluctuation');
   if(!fluctuation){return;}
-  let flucts=['MINIMAL','MODERATE','SEVERE','ANOMALOUS'];
-  animateValue('dark-matter',randFloat(0,10),{decimals:3,suffix:' μg/cm³'});
-  fluctuation.textContent=flucts[rand(0,3)];
-  let online=rand(0,1);
+  animateValue('dark-matter',data.density,{decimals:3,suffix:' μg/cm³'});
+  fluctuation.textContent=data.fluctuation;
   const status=document.getElementById('dm-status');
-  if(status){status.className='status '+(online?'active':'inactive');}
+  if(status){status.className='status '+(data.gridOnline?'active':'inactive');}
   const grid=document.getElementById('grid');
-  if(grid){grid.textContent=online?'ONLINE':'OFFLINE';}
+  if(grid){grid.textContent=data.gridOnline?'ONLINE':'OFFLINE';}
 }
 
-function generateAntimatter(){
+async function generateAntimatter(){
+  const data=await sendCommand('/api/antimatter');
+  if(!data){return;}
   const containment=document.getElementById('containment');
   if(!containment){return;}
-  let c=rand(85,100);
-  animateValue('containment',c,{decimals:0,suffix:'%'});
-  animateValue('antimatter',randFloat(0,1),{decimals:3,suffix:' g'});
+  animateValue('containment',data.containment,{decimals:0,suffix:'%'});
+  animateValue('antimatter',data.antimatter,{decimals:3,suffix:' g'});
   const field=document.getElementById('field');
-  if(field){field.textContent=c>95?'MAXIMUM':'DEGRADING';}
+  if(field){field.textContent=data.field;}
   const gauge=document.getElementById('antimatter-gauge');
-  if(gauge){gauge.style.width=c+'%';}
+  if(gauge){gauge.style.width=data.gauge+'%';}
 }
 
-function shiftDimension(){
+async function shiftDimension(){
+  const data=await sendCommand('/api/dimension');
+  if(!data){return;}
   const dimension=document.getElementById('dimension');
   if(!dimension){return;}
-  let dims=['3D','4D','5D','2D','11D','FRACTIONAL'];
-  dimension.textContent=dims[rand(0,5)];
-  animateValue('phase',rand(0,360),{decimals:0,suffix:'°'});
+  dimension.textContent=data.dimension;
+  animateValue('phase',data.phase,{decimals:0,suffix:'°'});
   const anchor=document.getElementById('anchor');
-  if(anchor){anchor.textContent=rand(0,1)?'LOCKED':'DRIFTING';}
+  if(anchor){anchor.textContent=data.anchor;}
 }
 
-function emitTachyon(){
+async function emitTachyon(){
+  const data=await sendCommand('/api/tachyon');
+  if(!data){return;}
   const pulse=document.getElementById('pulse-rate');
   if(!pulse){return;}
-  animateValue('pulse-rate',randFloat(0,1000),{decimals:1,suffix:' Hz'});
-  animateValue('ftl',randFloat(0,10),{decimals:2,suffix:'x'});
-  animateValue('energy',randFloat(0,999),{decimals:1,suffix:' GW'});
+  animateValue('pulse-rate',data.pulseRate,{decimals:1,suffix:' Hz'});
+  animateValue('ftl',data.ftl,{decimals:2,suffix:'x'});
+  animateValue('energy',data.energy,{decimals:1,suffix:' GW'});
 }
 
-function createSingularity(){
+async function createSingularity(){
+  const data=await sendCommand('/api/singularity');
+  if(!data){return;}
   const radius=document.getElementById('radius');
   if(!radius){return;}
-  animateValue('radius',randFloat(0,100),{decimals:2,suffix:' km'});
-  animateValue('hawking',randFloat(0,1000),{decimals:1,suffix:' K'});
+  animateValue('radius',data.radius,{decimals:2,suffix:' km'});
+  animateValue('hawking',data.hawking,{decimals:1,suffix:' K'});
   const horizon=document.getElementById('horizon');
-  if(horizon){horizon.textContent=rand(0,1)?'STABLE':'COLLAPSING';}
+  if(horizon){horizon.textContent=data.horizon;}
   const gauge=document.getElementById('singularity-gauge');
-  if(gauge){gauge.style.width=rand(20,100)+'%';}
+  if(gauge){gauge.style.width=data.gauge+'%';}
 }
 
 function initHome(){
@@ -483,6 +503,159 @@ void sendAppScript(WiFiClient& client) {
   client.println();
 }
 
+void sendJson(WiFiClient& client, const String& payload, const char* status = "HTTP/1.1 200 OK") {
+  client.println(status);
+  client.println("Content-type:application/json");
+  client.println("Cache-Control: no-store");
+  client.println("Connection: close");
+  client.println();
+  client.print(payload);
+  client.println();
+}
+
+const int PIN_FLUX = 2;
+const int PIN_TIME = 3;
+const int PIN_WORMHOLE = 4;
+const int PIN_DARK_MATTER = 5;
+const int PIN_ANTIMATTER = 6;
+const int PIN_DIMENSION = 7;
+const int PIN_TACHYON = 8;
+const int PIN_SINGULARITY = 9;
+
+bool fluxActive = false;
+bool timeActive = false;
+bool wormholeActive = false;
+bool darkMatterActive = false;
+bool antimatterActive = false;
+bool dimensionActive = false;
+bool tachyonActive = false;
+bool singularityActive = false;
+
+float analogNoise() {
+  return analogRead(A0) / 1023.0;
+}
+
+int scaledRange(int minValue, int maxValue) {
+  float noise = analogNoise();
+  return minValue + static_cast<int>((maxValue - minValue) * noise);
+}
+
+float scaledRangeFloat(float minValue, float maxValue) {
+  float noise = analogNoise();
+  return minValue + (maxValue - minValue) * noise;
+}
+
+String pickLabel(const char* const* labels, int count, unsigned long divisor = 1000) {
+  int index = (millis() / divisor) % count;
+  return String(labels[index]);
+}
+
+void handleApi(const char* path, WiFiClient& client) {
+  if (strcmp(path, "/api/flux") == 0) {
+    fluxActive = !fluxActive;
+    digitalWrite(PIN_FLUX, fluxActive ? HIGH : LOW);
+    const char* fluxStates[] = {"STABLE", "FLUCTUATING", "CRITICAL", "HARMONIZED"};
+    String payload = "{";
+    payload += "\"fluxState\":\"" + pickLabel(fluxStates, 4, 800) + "\",";
+    payload += "\"particleCount\":" + String(scaledRange(1000, 9999)) + ",";
+    payload += "\"entangle\":" + String(scaledRange(0, 100)) + ",";
+    payload += "\"gauge\":" + String(scaledRange(20, 100));
+    payload += "}";
+    sendJson(client, payload);
+    return;
+  }
+  if (strcmp(path, "/api/time") == 0) {
+    timeActive = !timeActive;
+    digitalWrite(PIN_TIME, timeActive ? HIGH : LOW);
+    const char* eras[] = {"2025 CE", "1885 CE", "2155 CE", "3024 CE", "476 CE", "10000 BCE"};
+    String payload = "{";
+    payload += "\"era\":\"" + pickLabel(eras, 6, 2200) + "\",";
+    payload += "\"drift\":" + String(scaledRange(0, 5000)) + ",";
+    payload += "\"causality\":" + String(scaledRangeFloat(0.5, 1.5), 3);
+    payload += "}";
+    sendJson(client, payload);
+    return;
+  }
+  if (strcmp(path, "/api/wormhole") == 0) {
+    wormholeActive = !wormholeActive;
+    digitalWrite(PIN_WORMHOLE, wormholeActive ? HIGH : LOW);
+    const char* dests[] = {"ALPHA CENTAURI", "ANDROMEDA", "PARALLEL EARTH", "VOID", "PROXIMA B"};
+    int stability = scaledRange(0, 100);
+    String payload = "{";
+    payload += "\"stability\":" + String(stability) + ",";
+    payload += "\"aperture\":" + String(scaledRangeFloat(0.0, 100.0), 2) + ",";
+    payload += "\"destination\":\"" + pickLabel(dests, 5, 1800) + "\",";
+    payload += "\"gauge\":" + String(stability);
+    payload += "}";
+    sendJson(client, payload);
+    return;
+  }
+  if (strcmp(path, "/api/dark-matter") == 0) {
+    darkMatterActive = !darkMatterActive;
+    digitalWrite(PIN_DARK_MATTER, darkMatterActive ? HIGH : LOW);
+    const char* flucts[] = {"MINIMAL", "MODERATE", "SEVERE", "ANOMALOUS"};
+    String payload = "{";
+    payload += "\"density\":" + String(scaledRangeFloat(0.0, 10.0), 3) + ",";
+    payload += "\"fluctuation\":\"" + pickLabel(flucts, 4, 1500) + "\",";
+    payload += "\"gridOnline\":" + String(darkMatterActive ? "true" : "false");
+    payload += "}";
+    sendJson(client, payload);
+    return;
+  }
+  if (strcmp(path, "/api/antimatter") == 0) {
+    antimatterActive = !antimatterActive;
+    digitalWrite(PIN_ANTIMATTER, antimatterActive ? HIGH : LOW);
+    int containment = scaledRange(85, 100);
+    String field = containment > 95 ? "MAXIMUM" : "DEGRADING";
+    String payload = "{";
+    payload += "\"containment\":" + String(containment) + ",";
+    payload += "\"antimatter\":" + String(scaledRangeFloat(0.0, 1.0), 3) + ",";
+    payload += "\"field\":\"" + field + "\",";
+    payload += "\"gauge\":" + String(containment);
+    payload += "}";
+    sendJson(client, payload);
+    return;
+  }
+  if (strcmp(path, "/api/dimension") == 0) {
+    dimensionActive = !dimensionActive;
+    digitalWrite(PIN_DIMENSION, dimensionActive ? HIGH : LOW);
+    const char* dims[] = {"3D", "4D", "5D", "2D", "11D", "FRACTIONAL"};
+    String payload = "{";
+    payload += "\"dimension\":\"" + pickLabel(dims, 6, 2000) + "\",";
+    payload += "\"phase\":" + String(scaledRange(0, 360)) + ",";
+    payload += "\"anchor\":\"" + String(dimensionActive ? "LOCKED" : "DRIFTING") + "\"";
+    payload += "}";
+    sendJson(client, payload);
+    return;
+  }
+  if (strcmp(path, "/api/tachyon") == 0) {
+    tachyonActive = !tachyonActive;
+    digitalWrite(PIN_TACHYON, tachyonActive ? HIGH : LOW);
+    String payload = "{";
+    payload += "\"pulseRate\":" + String(scaledRangeFloat(0.0, 1000.0), 1) + ",";
+    payload += "\"ftl\":" + String(scaledRangeFloat(0.0, 10.0), 2) + ",";
+    payload += "\"energy\":" + String(scaledRangeFloat(0.0, 999.0), 1);
+    payload += "}";
+    sendJson(client, payload);
+    return;
+  }
+  if (strcmp(path, "/api/singularity") == 0) {
+    singularityActive = !singularityActive;
+    digitalWrite(PIN_SINGULARITY, singularityActive ? HIGH : LOW);
+    const char* horizons[] = {"STABLE", "COLLAPSING"};
+    int gauge = scaledRange(20, 100);
+    String payload = "{";
+    payload += "\"radius\":" + String(scaledRangeFloat(0.0, 100.0), 2) + ",";
+    payload += "\"hawking\":" + String(scaledRangeFloat(0.0, 1000.0), 1) + ",";
+    payload += "\"horizon\":\"" + pickLabel(horizons, 2, 900) + "\",";
+    payload += "\"gauge\":" + String(gauge);
+    payload += "}";
+    sendJson(client, payload);
+    return;
+  }
+  sendJson(client, "{\"error\":\"unknown command\"}", "HTTP/1.1 404 Not Found");
+}
+
 void servePage(const char* path, WiFiClient& client) {
   if (strcmp(path, "/styles.css") == 0) {
     sendStylesheet(client);
@@ -490,6 +663,10 @@ void servePage(const char* path, WiFiClient& client) {
   }
   if (strcmp(path, "/app.js") == 0) {
     sendAppScript(client);
+    return;
+  }
+  if (strncmp(path, "/api/", 5) == 0) {
+    handleApi(path, client);
     return;
   }
   if (strcmp(path, "/") == 0) {
@@ -516,6 +693,23 @@ void setup() {
   delay(1000);
 
   Serial.println("Initializing Quantum Systems...");
+
+  pinMode(PIN_FLUX, OUTPUT);
+  pinMode(PIN_TIME, OUTPUT);
+  pinMode(PIN_WORMHOLE, OUTPUT);
+  pinMode(PIN_DARK_MATTER, OUTPUT);
+  pinMode(PIN_ANTIMATTER, OUTPUT);
+  pinMode(PIN_DIMENSION, OUTPUT);
+  pinMode(PIN_TACHYON, OUTPUT);
+  pinMode(PIN_SINGULARITY, OUTPUT);
+  digitalWrite(PIN_FLUX, LOW);
+  digitalWrite(PIN_TIME, LOW);
+  digitalWrite(PIN_WORMHOLE, LOW);
+  digitalWrite(PIN_DARK_MATTER, LOW);
+  digitalWrite(PIN_ANTIMATTER, LOW);
+  digitalWrite(PIN_DIMENSION, LOW);
+  digitalWrite(PIN_TACHYON, LOW);
+  digitalWrite(PIN_SINGULARITY, LOW);
 
   // Connect to WiFi
   WiFi.begin(ssid, password);

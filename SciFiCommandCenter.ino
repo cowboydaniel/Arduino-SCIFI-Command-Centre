@@ -1,5 +1,16 @@
+#include <Arduino.h>
 #include <WiFiS3.h>
-#include <pgmspace.h>
+
+#if defined(ARDUINO_ARCH_AVR)
+#include <avr/pgmspace.h>
+#else
+#ifndef PROGMEM
+#define PROGMEM
+#endif
+#ifndef FPSTR
+#define FPSTR(pstr_pointer) (pstr_pointer)
+#endif
+#endif
 
 // WiFi credentials - UPDATE THESE
 const char* ssid = "outbackhut";

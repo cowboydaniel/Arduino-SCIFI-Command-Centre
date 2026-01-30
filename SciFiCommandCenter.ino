@@ -8,7 +8,33 @@ const char* password = "wildmonkeys2810";
 WiFiServer server(80);
 
 const char PAGE_HEAD[] PROGMEM = R"rawliteral(
-<!DOCTYPE html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Quantum Command Center</title><style>
+<!DOCTYPE html><html><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'><title>Quantum Command Center</title><link rel='stylesheet' href='/styles.css'></head><body><div class='container'>
+)rawliteral";
+
+const char HEADER_HTML[] PROGMEM = R"rawliteral(
+<header class='header'>
+  <h1>⚡ QUANTUM COMMAND CENTER ⚡</h1>
+  <div>SYSTEM STATUS: <span style='color:#0f0'>OPERATIONAL</span> | THREAT LEVEL: <span style='color:#ff0'>MODERATE</span></div>
+</header>
+)rawliteral";
+
+const char NAV_HTML[] PROGMEM = R"rawliteral(
+<nav class='nav'>
+  <a href='/'>Home</a>
+  <a href='/systems'>Systems</a>
+  <a href='/map'>Sector Map</a>
+  <a href='/telemetry'>Diagnostics</a>
+</nav>
+)rawliteral";
+
+const char PAGE_FOOTER[] PROGMEM = R"rawliteral(
+<footer class='footer'>
+  <span>Quantum Command Center &mdash; All systems synchronized.</span>
+</footer>
+</div><script src='/app.js' defer></script></body></html>
+)rawliteral";
+
+const char STYLESHEET[] PROGMEM = R"rawliteral(
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#000;color:#0f0;font-family:'Courier New',monospace;overflow:hidden;height:100vh;position:relative}
 body::before{content:"";position:fixed;inset:-50%;background:radial-gradient(circle at 20% 20%,rgba(0,255,255,0.25) 0,transparent 40%),radial-gradient(circle at 80% 30%,rgba(0,255,120,0.2) 0,transparent 45%),radial-gradient(circle at 40% 80%,rgba(0,120,255,0.2) 0,transparent 50%);animation:starDrift 40s linear infinite;opacity:0.35;z-index:0}
@@ -40,6 +66,7 @@ body::after{content:"";position:fixed;inset:0;background:linear-gradient(to bott
 .page h2{color:#0ff;margin-bottom:12px}
 .page ul{list-style:none}
 .page li{padding:6px 0;border-bottom:1px solid rgba(0,255,0,0.2)}
+.footer{margin-top:14px;border:1px solid rgba(0,255,255,0.4);padding:10px;text-align:center;color:#9ff;background:rgba(0,255,255,0.05);text-shadow:0 0 8px rgba(0,255,255,0.4)}
 .telemetry-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:12px}
 .telemetry-panel{border:1px solid rgba(0,255,255,0.5);padding:12px;background:rgba(0,255,255,0.08);position:relative;overflow:hidden;transition:transform 0.3s,box-shadow 0.3s}
 .telemetry-panel::after{content:"";position:absolute;top:-70%;left:-30%;width:60%;height:220%;background:linear-gradient(120deg,transparent,rgba(0,255,255,0.15),transparent);animation:shimmer 8s linear infinite}
@@ -59,19 +86,6 @@ body::after{content:"";position:fixed;inset:0;background:linear-gradient(to bott
 .status{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
 .status.active{background:#0f0;box-shadow:0 0 10px #0f0}
 .status.inactive{background:#333}
-</style></head><body><div class='container'><div class='header'>
-<h1>⚡ QUANTUM COMMAND CENTER ⚡</h1>
-<div>SYSTEM STATUS: <span style='color:#0f0'>OPERATIONAL</span> | THREAT LEVEL: <span style='color:#ff0'>MODERATE</span></div>
-</div>
-)rawliteral";
-
-const char NAV_HTML[] PROGMEM = R"rawliteral(
-<nav class='nav'>
-  <a href='/'>Home</a>
-  <a href='/systems'>Systems</a>
-  <a href='/map'>Sector Map</a>
-  <a href='/telemetry'>Diagnostics</a>
-</nav>
 )rawliteral";
 
 const char INDEX_CONTENT[] PROGMEM = R"rawliteral(
@@ -130,104 +144,6 @@ const char INDEX_CONTENT[] PROGMEM = R"rawliteral(
 </div>
 )rawliteral";
 
-const char INDEX_SCRIPT[] PROGMEM = R"rawliteral(
-<script>
-function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min}
-function randFloat(min,max){return Math.random()*(max-min)+min}
-function easeInOutCubic(t){return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2}
-function parseNumber(text){const num=text.replace(/[^0-9.+-]/g,'');return parseFloat(num)||0}
-function animateValue(id,target,options){
-  const el=document.getElementById(id);
-  if(!el){return;}
-  const start=parseFloat(el.dataset.value||parseNumber(el.textContent));
-  const startTime=performance.now();
-  const duration=(options&&options.duration)||900;
-  const decimals=(options&&options.decimals)!=null?options.decimals:0;
-  const prefix=(options&&options.prefix)||'';
-  const suffix=(options&&options.suffix)||'';
-  const formatter=options&&options.formatter;
-  function step(now){
-    const progress=Math.min((now-startTime)/duration,1);
-    const value=start+(target-start)*easeInOutCubic(progress);
-    el.dataset.value=value;
-    el.textContent=formatter?formatter(value):`${prefix}${value.toFixed(decimals)}${suffix}`;
-    if(progress<1){requestAnimationFrame(step);}
-  }
-  requestAnimationFrame(step);
-}
-
-function activateFlux(){
-  let states=['STABLE','FLUCTUATING','CRITICAL','HARMONIZED'];
-  document.getElementById('flux').textContent=states[rand(0,3)];
-  animateValue('particles',rand(1000,9999),{decimals:0});
-  animateValue('entangle',rand(0,100),{decimals:0,suffix:'%'});
-  document.getElementById('flux-gauge').style.width=rand(20,100)+'%';
-}
-
-function timeTravel(){
-  let eras=['2025 CE','1885 CE','2155 CE','3024 CE','476 CE','10000 BCE'];
-  document.getElementById('era').textContent=eras[rand(0,5)];
-  animateValue('drift',rand(0,5000),{decimals:0,prefix:'±',suffix:' yrs'});
-  animateValue('causality',randFloat(0.5,1.5),{decimals:3});
-}
-
-function openWormhole(){
-  let dests=['ALPHA CENTAURI','ANDROMEDA','PARALLEL EARTH','VOID','PROXIMA B'];
-  animateValue('stability',rand(0,100),{decimals:0,suffix:'%'});
-  animateValue('aperture',randFloat(0,100),{decimals:2,suffix:' m'});
-  document.getElementById('destination').textContent=dests[rand(0,4)];
-  document.getElementById('wormhole-gauge').style.width=rand(0,100)+'%';
-}
-
-function scanDarkMatter(){
-  let flucts=['MINIMAL','MODERATE','SEVERE','ANOMALOUS'];
-  animateValue('dark-matter',randFloat(0,10),{decimals:3,suffix:' μg/cm³'});
-  document.getElementById('fluctuation').textContent=flucts[rand(0,3)];
-  let online=rand(0,1);
-  document.getElementById('dm-status').className='status '+(online?'active':'inactive');
-  document.getElementById('grid').textContent=online?'ONLINE':'OFFLINE';
-}
-
-function generateAntimatter(){
-  let c=rand(85,100);
-  animateValue('containment',c,{decimals:0,suffix:'%'});
-  animateValue('antimatter',randFloat(0,1),{decimals:3,suffix:' g'});
-  document.getElementById('field').textContent=c>95?'MAXIMUM':'DEGRADING';
-  document.getElementById('antimatter-gauge').style.width=c+'%';
-}
-
-function shiftDimension(){
-  let dims=['3D','4D','5D','2D','11D','FRACTIONAL'];
-  document.getElementById('dimension').textContent=dims[rand(0,5)];
-  animateValue('phase',rand(0,360),{decimals:0,suffix:'°'});
-  document.getElementById('anchor').textContent=rand(0,1)?'LOCKED':'DRIFTING';
-}
-
-function emitTachyon(){
-  animateValue('pulse-rate',randFloat(0,1000),{decimals:1,suffix:' Hz'});
-  animateValue('ftl',randFloat(0,10),{decimals:2,suffix:'x'});
-  animateValue('energy',randFloat(0,999),{decimals:1,suffix:' GW'});
-}
-
-function createSingularity(){
-  animateValue('radius',randFloat(0,100),{decimals:2,suffix:' km'});
-  animateValue('hawking',randFloat(0,1000),{decimals:1,suffix:' K'});
-  document.getElementById('horizon').textContent=rand(0,1)?'STABLE':'COLLAPSING';
-  document.getElementById('singularity-gauge').style.width=rand(20,100)+'%';
-}
-
-setInterval(()=>{
-  if(Math.random()>0.65)activateFlux();
-  if(Math.random()>0.7)timeTravel();
-  if(Math.random()>0.7)openWormhole();
-  if(Math.random()>0.8)scanDarkMatter();
-  if(Math.random()>0.6)generateAntimatter();
-  if(Math.random()>0.65)shiftDimension();
-  if(Math.random()>0.6)emitTachyon();
-  if(Math.random()>0.7)createSingularity();
-},2800);
-</script>
-)rawliteral";
 
 const char SYSTEMS_CONTENT[] PROGMEM = R"rawliteral(
 <div class='page'>
@@ -291,8 +207,7 @@ const char TELEMETRY_CONTENT[] PROGMEM = R"rawliteral(
 </div>
 )rawliteral";
 
-const char TELEMETRY_SCRIPT[] PROGMEM = R"rawliteral(
-<script>
+const char APP_JS[] PROGMEM = R"rawliteral(
 function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min}
 function randFloat(min,max){return Math.random()*(max-min)+min}
 function easeInOutCubic(t){return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2}
@@ -302,96 +217,201 @@ function animateValue(id,target,options){
   if(!el){return;}
   const start=parseFloat(el.dataset.value||parseNumber(el.textContent));
   const startTime=performance.now();
-  const duration=(options&&options.duration)||1000;
+  const duration=(options&&options.duration)||900;
   const decimals=(options&&options.decimals)!=null?options.decimals:0;
   const prefix=(options&&options.prefix)||'';
   const suffix=(options&&options.suffix)||'';
+  const formatter=options&&options.formatter;
   function step(now){
     const progress=Math.min((now-startTime)/duration,1);
     const value=start+(target-start)*easeInOutCubic(progress);
     el.dataset.value=value;
-    el.textContent=`${prefix}${value.toFixed(decimals)}${suffix}`;
+    el.textContent=formatter?formatter(value):`${prefix}${value.toFixed(decimals)}${suffix}`;
     if(progress<1){requestAnimationFrame(step);}
   }
   requestAnimationFrame(step);
 }
 
-const canvas=document.getElementById('telemetry-chart');
-const ctx=canvas?canvas.getContext('2d'):null;
-let telemetryData=new Array(48).fill(0).map(()=>randFloat(30,80));
-let chartDpr=1;
+function activateFlux(){
+  const flux=document.getElementById('flux');
+  if(!flux){return;}
+  let states=['STABLE','FLUCTUATING','CRITICAL','HARMONIZED'];
+  flux.textContent=states[rand(0,3)];
+  animateValue('particles',rand(1000,9999),{decimals:0});
+  animateValue('entangle',rand(0,100),{decimals:0,suffix:'%'});
+  const gauge=document.getElementById('flux-gauge');
+  if(gauge){gauge.style.width=rand(20,100)+'%';}
+}
 
-function resizeCanvas(){
+function timeTravel(){
+  const era=document.getElementById('era');
+  if(!era){return;}
+  let eras=['2025 CE','1885 CE','2155 CE','3024 CE','476 CE','10000 BCE'];
+  era.textContent=eras[rand(0,5)];
+  animateValue('drift',rand(0,5000),{decimals:0,prefix:'±',suffix:' yrs'});
+  animateValue('causality',randFloat(0.5,1.5),{decimals:3});
+}
+
+function openWormhole(){
+  const destination=document.getElementById('destination');
+  if(!destination){return;}
+  let dests=['ALPHA CENTAURI','ANDROMEDA','PARALLEL EARTH','VOID','PROXIMA B'];
+  animateValue('stability',rand(0,100),{decimals:0,suffix:'%'});
+  animateValue('aperture',randFloat(0,100),{decimals:2,suffix:' m'});
+  destination.textContent=dests[rand(0,4)];
+  const gauge=document.getElementById('wormhole-gauge');
+  if(gauge){gauge.style.width=rand(0,100)+'%';}
+}
+
+function scanDarkMatter(){
+  const fluctuation=document.getElementById('fluctuation');
+  if(!fluctuation){return;}
+  let flucts=['MINIMAL','MODERATE','SEVERE','ANOMALOUS'];
+  animateValue('dark-matter',randFloat(0,10),{decimals:3,suffix:' μg/cm³'});
+  fluctuation.textContent=flucts[rand(0,3)];
+  let online=rand(0,1);
+  const status=document.getElementById('dm-status');
+  if(status){status.className='status '+(online?'active':'inactive');}
+  const grid=document.getElementById('grid');
+  if(grid){grid.textContent=online?'ONLINE':'OFFLINE';}
+}
+
+function generateAntimatter(){
+  const containment=document.getElementById('containment');
+  if(!containment){return;}
+  let c=rand(85,100);
+  animateValue('containment',c,{decimals:0,suffix:'%'});
+  animateValue('antimatter',randFloat(0,1),{decimals:3,suffix:' g'});
+  const field=document.getElementById('field');
+  if(field){field.textContent=c>95?'MAXIMUM':'DEGRADING';}
+  const gauge=document.getElementById('antimatter-gauge');
+  if(gauge){gauge.style.width=c+'%';}
+}
+
+function shiftDimension(){
+  const dimension=document.getElementById('dimension');
+  if(!dimension){return;}
+  let dims=['3D','4D','5D','2D','11D','FRACTIONAL'];
+  dimension.textContent=dims[rand(0,5)];
+  animateValue('phase',rand(0,360),{decimals:0,suffix:'°'});
+  const anchor=document.getElementById('anchor');
+  if(anchor){anchor.textContent=rand(0,1)?'LOCKED':'DRIFTING';}
+}
+
+function emitTachyon(){
+  const pulse=document.getElementById('pulse-rate');
+  if(!pulse){return;}
+  animateValue('pulse-rate',randFloat(0,1000),{decimals:1,suffix:' Hz'});
+  animateValue('ftl',randFloat(0,10),{decimals:2,suffix:'x'});
+  animateValue('energy',randFloat(0,999),{decimals:1,suffix:' GW'});
+}
+
+function createSingularity(){
+  const radius=document.getElementById('radius');
+  if(!radius){return;}
+  animateValue('radius',randFloat(0,100),{decimals:2,suffix:' km'});
+  animateValue('hawking',randFloat(0,1000),{decimals:1,suffix:' K'});
+  const horizon=document.getElementById('horizon');
+  if(horizon){horizon.textContent=rand(0,1)?'STABLE':'COLLAPSING';}
+  const gauge=document.getElementById('singularity-gauge');
+  if(gauge){gauge.style.width=rand(20,100)+'%';}
+}
+
+function initHome(){
+  if(!document.getElementById('flux')){return;}
+  setInterval(()=>{
+    if(Math.random()>0.65)activateFlux();
+    if(Math.random()>0.7)timeTravel();
+    if(Math.random()>0.7)openWormhole();
+    if(Math.random()>0.8)scanDarkMatter();
+    if(Math.random()>0.6)generateAntimatter();
+    if(Math.random()>0.65)shiftDimension();
+    if(Math.random()>0.6)emitTachyon();
+    if(Math.random()>0.7)createSingularity();
+  },2800);
+}
+
+function initTelemetry(){
+  const canvas=document.getElementById('telemetry-chart');
   if(!canvas){return;}
-  const rect=canvas.getBoundingClientRect();
-  chartDpr=window.devicePixelRatio||1;
-  canvas.width=rect.width*chartDpr;
-  canvas.height=rect.height*chartDpr;
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.scale(chartDpr,chartDpr);
-}
+  const ctx=canvas.getContext('2d');
+  let telemetryData=new Array(48).fill(0).map(()=>randFloat(30,80));
+  let chartDpr=1;
 
-function updateTelemetry(){
-  telemetryData.push(randFloat(30,90));
-  telemetryData.shift();
-  const reactor=rand(60,95);
-  animateValue('diag-reactor',reactor,{decimals:0,suffix:'%'});
-  animateValue('diag-comms',rand(85,100),{decimals:0,suffix:'%'});
-  animateValue('diag-shield',randFloat(2.5,4.5),{decimals:2,suffix:' THz'});
-  animateValue('diag-anomaly',randFloat(0.01,0.12),{decimals:2});
-  const gauge=document.getElementById('diag-reactor-gauge');
-  if(gauge){gauge.style.width=reactor+'%';}
-}
+  function resizeCanvas(){
+    const rect=canvas.getBoundingClientRect();
+    chartDpr=window.devicePixelRatio||1;
+    canvas.width=rect.width*chartDpr;
+    canvas.height=rect.height*chartDpr;
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.scale(chartDpr,chartDpr);
+  }
 
-function drawChart(){
-  if(!ctx){return;}
-  ctx.save();
-  ctx.setTransform(1,0,0,1,0,0);
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.restore();
-  const width=canvas.clientWidth;
-  const height=canvas.clientHeight;
-  ctx.strokeStyle='rgba(0,255,255,0.2)';
-  ctx.lineWidth=1;
-  for(let i=0;i<5;i++){
-    const y=(height/4)*i;
+  function updateTelemetry(){
+    telemetryData.push(randFloat(30,90));
+    telemetryData.shift();
+    const reactor=rand(60,95);
+    animateValue('diag-reactor',reactor,{decimals:0,suffix:'%'});
+    animateValue('diag-comms',rand(85,100),{decimals:0,suffix:'%'});
+    animateValue('diag-shield',randFloat(2.5,4.5),{decimals:2,suffix:' THz'});
+    animateValue('diag-anomaly',randFloat(0.01,0.12),{decimals:2});
+    const gauge=document.getElementById('diag-reactor-gauge');
+    if(gauge){gauge.style.width=reactor+'%';}
+  }
+
+  function drawChart(){
+    ctx.save();
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.restore();
+    const width=canvas.clientWidth;
+    const height=canvas.clientHeight;
+    ctx.strokeStyle='rgba(0,255,255,0.2)';
+    ctx.lineWidth=1;
+    for(let i=0;i<5;i++){
+      const y=(height/4)*i;
+      ctx.beginPath();
+      ctx.moveTo(0,y);
+      ctx.lineTo(width,y);
+      ctx.stroke();
+    }
+    ctx.strokeStyle='#0ff';
+    ctx.lineWidth=2;
     ctx.beginPath();
-    ctx.moveTo(0,y);
-    ctx.lineTo(width,y);
+    telemetryData.forEach((val,index)=>{
+      const x=(width/(telemetryData.length-1))*index;
+      const y=height-(val/100)*height;
+      if(index===0){ctx.moveTo(x,y);}else{ctx.lineTo(x,y);}
+    });
     ctx.stroke();
+    requestAnimationFrame(drawChart);
   }
-  ctx.strokeStyle='#0ff';
-  ctx.lineWidth=2;
-  ctx.beginPath();
-  telemetryData.forEach((val,index)=>{
-    const x=(width/(telemetryData.length-1))*index;
-    const y=height-(val/100)*height;
-    if(index===0){ctx.moveTo(x,y);}else{ctx.lineTo(x,y);}
-  });
-  ctx.stroke();
-  requestAnimationFrame(drawChart);
+
+  function updateVector(){
+    const line=document.getElementById('vector-line');
+    if(!line){return;}
+    const points=[];
+    for(let i=0;i<6;i++){
+      const x=i*40;
+      const y=rand(20,100);
+      points.push(`${x},${y}`);
+    }
+    line.setAttribute('points',points.join(' '));
+  }
+
+  window.addEventListener('resize',()=>{resizeCanvas();});
+  resizeCanvas();
+  updateTelemetry();
+  drawChart();
+  updateVector();
+  setInterval(updateTelemetry,1400);
+  setInterval(updateVector,1600);
 }
 
-function updateVector(){
-  const line=document.getElementById('vector-line');
-  if(!line){return;}
-  const points=[];
-  for(let i=0;i<6;i++){
-    const x=i*40;
-    const y=rand(20,100);
-    points.push(`${x},${y}`);
-  }
-  line.setAttribute('points',points.join(' '));
-}
-
-window.addEventListener('resize',()=>{resizeCanvas();});
-resizeCanvas();
-updateTelemetry();
-drawChart();
-updateVector();
-setInterval(updateTelemetry,1400);
-setInterval(updateVector,1600);
-</script>
+window.addEventListener('DOMContentLoaded',()=>{
+  initHome();
+  initTelemetry();
+});
 )rawliteral";
 
 const char NOT_FOUND_CONTENT[] PROGMEM = R"rawliteral(
@@ -401,9 +421,6 @@ const char NOT_FOUND_CONTENT[] PROGMEM = R"rawliteral(
 </div>
 )rawliteral";
 
-const char PAGE_FOOTER[] PROGMEM = R"rawliteral(
-</div></body></html>
-)rawliteral";
 
 String extractPath(const String& requestLine) {
   int firstSpace = requestLine.indexOf(' ');
@@ -422,39 +439,65 @@ String extractPath(const String& requestLine) {
   return path;
 }
 
-void sendHtmlPage(WiFiClient& client, const char* status, const char* content, const char* script) {
+void sendHtmlPage(WiFiClient& client, const char* status, const char* content) {
   client.println(status);
   client.println("Content-type:text/html");
   client.println("Connection: close");
   client.println();
   client.print(FPSTR(PAGE_HEAD));
+  client.print(FPSTR(HEADER_HTML));
   client.print(FPSTR(NAV_HTML));
   client.print(FPSTR(content));
-  if (script != nullptr) {
-    client.print(FPSTR(script));
-  }
   client.print(FPSTR(PAGE_FOOTER));
   client.println();
 }
 
+void sendStylesheet(WiFiClient& client) {
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-type:text/css");
+  client.println("Cache-Control: max-age=86400");
+  client.println("Connection: close");
+  client.println();
+  client.print(FPSTR(STYLESHEET));
+  client.println();
+}
+
+void sendAppScript(WiFiClient& client) {
+  client.println("HTTP/1.1 200 OK");
+  client.println("Content-type:application/javascript");
+  client.println("Cache-Control: max-age=86400");
+  client.println("Connection: close");
+  client.println();
+  client.print(FPSTR(APP_JS));
+  client.println();
+}
+
 void servePage(const char* path, WiFiClient& client) {
+  if (strcmp(path, "/styles.css") == 0) {
+    sendStylesheet(client);
+    return;
+  }
+  if (strcmp(path, "/app.js") == 0) {
+    sendAppScript(client);
+    return;
+  }
   if (strcmp(path, "/") == 0) {
-    sendHtmlPage(client, "HTTP/1.1 200 OK", INDEX_CONTENT, INDEX_SCRIPT);
+    sendHtmlPage(client, "HTTP/1.1 200 OK", INDEX_CONTENT);
     return;
   }
   if (strcmp(path, "/systems") == 0) {
-    sendHtmlPage(client, "HTTP/1.1 200 OK", SYSTEMS_CONTENT, nullptr);
+    sendHtmlPage(client, "HTTP/1.1 200 OK", SYSTEMS_CONTENT);
     return;
   }
   if (strcmp(path, "/map") == 0) {
-    sendHtmlPage(client, "HTTP/1.1 200 OK", MAP_CONTENT, nullptr);
+    sendHtmlPage(client, "HTTP/1.1 200 OK", MAP_CONTENT);
     return;
   }
   if (strcmp(path, "/telemetry") == 0) {
-    sendHtmlPage(client, "HTTP/1.1 200 OK", TELEMETRY_CONTENT, TELEMETRY_SCRIPT);
+    sendHtmlPage(client, "HTTP/1.1 200 OK", TELEMETRY_CONTENT);
     return;
   }
-  sendHtmlPage(client, "HTTP/1.1 404 Not Found", NOT_FOUND_CONTENT, nullptr);
+  sendHtmlPage(client, "HTTP/1.1 404 Not Found", NOT_FOUND_CONTENT);
 }
 
 void setup() {
